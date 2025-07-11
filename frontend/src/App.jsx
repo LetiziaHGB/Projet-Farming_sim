@@ -1,20 +1,19 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
-import './App.css'
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
-import Champs from './pages/Champs';
-import Machines from './pages/Machines';
-import Stockage from './pages/Stockage';
-import Usines from './pages/Usines';
+import { BrowserRouter, Routes, Route, Link } from 'react-router-dom';
+import Champs from './pages/champs';
+import Stockage from './pages/stockage';
+import Usines from './pages/usines';
 
 function App() {
   return (
     <BrowserRouter>
-      <h1>Simulateur Agricole 🧑‍🌾</h1>
+      <h1> Simulateur Agricole</h1>
+      <nav>
+        <Link to="/champs">Champs</Link> |  | 
+        <Link to="/stockage">Stockage</Link> | 
+        <Link to="/usines">Usines</Link>
+      </nav>
       <Routes>
         <Route path="/champs" element={<Champs />} />
-        <Route path="/machines" element={<Machines />} />
         <Route path="/stockage" element={<Stockage />} />
         <Route path="/usines" element={<Usines />} />
       </Routes>
@@ -23,3 +22,4 @@ function App() {
 }
 
 export default App;
+
