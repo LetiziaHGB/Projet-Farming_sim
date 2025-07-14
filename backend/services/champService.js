@@ -1,15 +1,23 @@
-const db = require('../db');
-const DELAI_ACTION = 30 * 1000;
+const ChampsDAO = require('../dao/champsDAO');
+const StockageDAO = require('../dao/stockageDAO');
+
+const DELAI_ACTION = 30000;
 const TEMPS_RECOLTE_MS = 2 * 60 * 1000;
+
 class ChampService {
   static async getAll() {
-    const [rows] = await db.query('SELECT * FROM champs');
-    return rows;
+    return await ChampsDAO.getAll();;
   }
 
   static async getById(id) {
-    const [[champ]] = await db.query('SELECT * FROM champs WHERE id = ?', [id]);
-    return champ;
+    return await ChampsDAO.getById(id);
+  }
+
+  static async updateEtat(id, nouvelEtat) {
+    const avant = await ChampService.getById(id);
+    await ChampsDAO.updateEtat(id, nouvelEtat);
+    const apres = await ChampService.getById(id);
+    return { avant, apres };
   }
 
   static async labourerChamp(id) {
@@ -18,7 +26,7 @@ class ChampService {
 
     return new Promise(resolve => {
       setTimeout(async () => {
-        await db.query('UPDATE champs SET etat = ? WHERE id = ?', ['labouré', id]);
+        await ChampsDAO.updateEtat(id, 'labouré');
         resolve({ message: `Champ ${id} labouré.` });
       }, DELAI_ACTION);
     });
@@ -30,8 +38,9 @@ class ChampService {
 
     return new Promise(resolve => {
       setTimeout(async () => {
-        await db.query('UPDATE champs SET etat = ?, culture = ?, date_semis = NOW() WHERE id = ?',
-          ['semé', culture, id]);
+        await ChampsDAO.updateEtat(id, 'semé');
+        await ChampsDAO.updateCulture(id, culture);
+        await ChampsDAO.updateDateSemis(id);
         resolve({ message: `Champ ${id} semé avec la culture ${culture}.` });
       }, DELAI_ACTION);
     });
@@ -43,7 +52,7 @@ class ChampService {
 
     return new Promise(resolve => {
       setTimeout(async () => {
-        await db.query('UPDATE champs SET etat = ? WHERE id = ?', ['fertilisé', id]);
+        await ChampsDAO.updateEtat(id, 'fertilisé');
         resolve({ message: `Champ ${id} fertilisé. Rendement augmenté de 50%.` });
       }, DELAI_ACTION);
     });
@@ -53,20 +62,17 @@ class ChampService {
     const champ = await ChampService.getById(id);
     if (!['prêt', 'fertilisé'].includes(champ.etat)) return { erreur: 'Le champ n’est pas prêt à être récolté.' };
 
-    const [[culture]] = await db.query('SELECT rendement FROM cultures WHERE nom = ?', [champ.culture]);
+    const culture = await CulturesDAO.getByNom(champ.culture);
     let rendement = culture?.rendement || 0;
     if (champ.etat === 'fertilisé') rendement = Math.round(rendement * 1.5);
 
-    const [[stock]] = await db.query('SELECT SUM(quantite) AS total FROM stockage');
-    if (stock.total + rendement > 100000) return { blocage: true, message: 'Stockage saturé. Récolte suspendue.' };
+    const totalStock = await StockageDAO.getTotalQuantite();
+    if (totalStock + rendement > 100000) return { blocage: true, message: 'Stockage saturé.' };
 
     return new Promise(resolve => {
       setTimeout(async () => {
-        await db.query('UPDATE champs SET etat = ?, culture = NULL, date_semis = NULL WHERE id = ?', ['récolté', id]);
-        await db.query(
-          'INSERT INTO stockage (type_produit, quantite) VALUES (?, ?) ON DUPLICATE KEY UPDATE quantite = quantite + ?',
-          [champ.culture, rendement, rendement]
-        );
+        await ChampsDAO.resetChamp(id);
+        await StockageDAO.ajouter(champ.culture, rendement);
         resolve({ message: `Champ ${id} récolté. ${rendement}L ajoutés au stockage.` });
       }, DELAI_ACTION);
     });

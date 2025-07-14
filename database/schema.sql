@@ -3,16 +3,16 @@ USE ferme_db;
 
 -- Table des champs agricoles
 CREATE TABLE champs (
-  id INT PRIMARY KEY AUTO_INCREMENT,
+  id INT PRIMARY KEY SERIAL,
   lot_id INT,
-  etat ENUM('récolté', 'labouré', 'semé', 'fertilisé', 'prêt'),
+  etat ENUM PostgreSQL('récolté', 'labouré', 'semé', 'fertilisé', 'prêt'),
   culture VARCHAR(50),
   date_semis DATETIME
 );
 
 -- Cultures disponibles
 CREATE TABLE cultures (
-  id INT AUTO_INCREMENT PRIMARY KEY,
+  id INT SERIAL PRIMARY KEY,
   nom VARCHAR(50),
   rendement INT,
   machines_requises TEXT
@@ -20,21 +20,21 @@ CREATE TABLE cultures (
 
 -- Machines agricoles
 CREATE TABLE machines (
-  id INT AUTO_INCREMENT PRIMARY KEY,
+  id INT SERIAL PRIMARY KEY,
   type VARCHAR(50),
   disponible BOOLEAN DEFAULT TRUE
 );
 
 -- Stockage
 CREATE TABLE stockage (
-  id INT AUTO_INCREMENT PRIMARY KEY,
+  id INT SERIAL PRIMARY KEY,
   type_produit VARCHAR(50),
   quantite INT
 );
 
 -- Usines de transformation
 CREATE TABLE usines (
-  id INT AUTO_INCREMENT PRIMARY KEY,
+  id INT SERIAL PRIMARY KEY,
   nom VARCHAR(100),
   intrants TEXT,
   produit_sortie VARCHAR(50),
@@ -43,7 +43,7 @@ CREATE TABLE usines (
 
 -- Historique de production
 CREATE TABLE historique (
-  id INT AUTO_INCREMENT PRIMARY KEY,
+  id INT SERIAL PRIMARY KEY,
   horodatage DATETIME DEFAULT CURRENT_TIMESTAMP,
   action VARCHAR(50),
   quantite INT,

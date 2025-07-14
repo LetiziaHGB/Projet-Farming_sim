@@ -1,35 +1,34 @@
-const db = require('../db');
+const UsinesDAO = require('../dao/usinesDAO');
+const StockageDAO = require('../dao/stockageDAO');
 
 class UsineService {
   static async getAll() {
-    const [rows] = await db.query('SELECT * FROM usines');
-    return rows;
+    return await UsinesDAO.getAll();
   }
 
   static async transformer(id) {
-    const [[usine]] = await db.query('SELECT * FROM usines WHERE id = ?', [id]);
+    const usine = await UsinesDAO.getById(id);
     const intrants = usine.intrants.split(',').map(i => i.trim());
     const produit = usine.produit_sortie;
     const sortie = 100 * usine.multiplicateur;
 
     for (const item of intrants) {
-      const [[stock]] = await db.query('SELECT quantite FROM stockage WHERE type_produit = ?', [item]);
-      if (!stock || stock.quantite < 100) return { erreur: `Intrant insuffisant : ${item}` };
+      const stock = await StockageDAO.getAll();
+      const ligne = stock.find(s => s.type_produit === item);
+      if (!ligne || ligne.quantite < 100) {
+        return { erreur: `Intrant insuffisant : ${item}` };
+      }
     }
 
-    const total = await StockageService.getTotalQuantite();
+    const total = await StockageDAO.getTotalQuantite();
     if (total + sortie > 100000) return { erreur: 'Stockage saturé, usine en pause' };
 
 
     for (const item of intrants) {
-      await db.query('UPDATE stockage SET quantite = quantite - 100 WHERE type_produit = ?', [item]);
+      await StockageDAO.retirer(item, 100);
     }
 
-    await db.query(
-      'INSERT INTO stockage (type_produit, quantite) VALUES (?, ?) ON DUPLICATE KEY UPDATE quantite = quantite + ?',
-      [produit, sortie, sortie]
-    );
-
+    await StockageDAO.ajouter(produit, sortie);
     return { message: `${usine.nom} a produit ${sortie}L de ${produit}` };
   }
 }

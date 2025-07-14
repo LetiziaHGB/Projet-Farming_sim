@@ -1,38 +1,34 @@
-const db = require('../db');
+const StockageDAO = require('../dao/stockageDAO');
 
 class StockageService {
   static async getAll() {
-    const [rows] = await db.query('SELECT * FROM stockage');
-    return rows;
+    return await StockageDAO.getAll();
   }
 
   static async ajouter(type, quantite) {
-    await db.query(
-      'INSERT INTO stockage (type_produit, quantite) VALUES (?, ?) ON DUPLICATE KEY UPDATE quantite = quantite + ?',
-      [type, quantite, quantite]
-    );
+    await StockageDAO.ajouter(type_produit, quantite);
     return { message: `Ajouté : ${quantite}L de ${type}` };
   }
 
   static async vendre(type, quantite) {
-    const [[stock]] = await db.query('SELECT quantite FROM stockage WHERE type_produit = ?', [type]);
-    if (!stock || stock.quantite < quantite) return { erreur: 'Stock insuffisant' };
+    const stock = await StockageDAO.getAll()
+    const produit = stock.find(item => item.type_produit === type_produit);
 
-    const gain = quantite;
-    await db.query('UPDATE stockage SET quantite = quantite - ? WHERE type_produit = ?', [quantite, type]);
-    await db.query('INSERT INTO historique (action, quantite, or_gagne) VALUES (?, ?, ?)', ['vente', quantite, gain]);
+    if (!produit || produit.quantite < quantite) {
+      return { erreur: 'Stock insuffisant.' };
+    }
 
+    await StockageDAO.vendre(type_produit, quantite);
     return { message: `${quantite}L de ${type} vendu pour ${gain} or` };
   }
 
   static async supprimer(type) {
-    await db.query('DELETE FROM stockage WHERE type_produit = ?', [type]);
+    await StockageDAO.supprimer(type_produit);
     return { message: `${type} supprimé du stockage` };
   }
 
   static async getTotalQuantite() {
-    const [[result]] = await db.query('SELECT SUM(quantite) AS total FROM stockage');
-    return result.total || 0;
+    return await StockageDAO.getTotalQuantite();
   } 
 }
 

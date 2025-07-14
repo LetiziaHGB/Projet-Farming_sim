@@ -1,12 +1,12 @@
-const db = require('../db');
+const MachinesDAO = require('../dao/machinesDAO');
 
 class MachineService {
   static async getAll() {
-    const [rows] = await db.query('SELECT * FROM machines');
-    return rows;
+    return await MachinesDAO.getAll();
   }
+
   static async reserver(id) {
-    await db.query('UPDATE machines SET disponible = FALSE WHERE id = ?', [id]);
+    await MachinesDAO.reserver(id);
     return { message: `Machine ${id} réservée.` };
   }
 }
